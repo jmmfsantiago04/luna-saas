@@ -2,6 +2,7 @@ import { DrizzleAdapter } from "@auth/drizzle-adapter";
 import { and, count, eq, sql } from "drizzle-orm";
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import Google from "next-auth/providers/google";
 import { z } from "zod";
 import { db } from "@/db";
 import { accounts, loginAttempts, users, verificationTokens } from "@/db/schema";
@@ -33,6 +34,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     signIn: "/login",
   },
   providers: [
+    // Junta com conta existente do mesmo email: o Google verifica o email.
+    Google({ allowDangerousEmailAccountLinking: true }),
     Credentials({
       name: "credentials",
       credentials: {

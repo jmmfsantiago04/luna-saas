@@ -4,6 +4,7 @@ import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { signIn } from "@/auth";
+import { safeCallback } from "@/lib/safe-redirect";
 
 export type LoginState = {
   error?: string;
@@ -48,5 +49,5 @@ export async function loginAction(
     throw error;
   }
 
-  redirect("/app");
+  redirect(safeCallback(formData.get("callbackUrl")) ?? "/app");
 }

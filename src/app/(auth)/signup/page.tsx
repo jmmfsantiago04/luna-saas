@@ -13,6 +13,8 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { GoogleButton } from "../google-button";
+import { CallbackInput } from "../callback-input";
 import { signupAction, type SignupState } from "./actions";
 
 const initialState: SignupState = {};
@@ -31,6 +33,7 @@ export default function SignupPage() {
         </CardHeader>
         <CardContent>
           <form action={formAction} className="flex flex-col gap-4">
+            <CallbackInput />
             <div className="flex flex-col gap-2">
               <Label htmlFor="name">Nome</Label>
               <Input id="name" name="name" autoComplete="name" required />
@@ -78,6 +81,7 @@ export default function SignupPage() {
               {pending ? "Criando..." : "Criar conta"}
             </Button>
           </form>
+          <GoogleButton />
         </CardContent>
         <CardFooter>
           <p className="text-sm text-muted-foreground">

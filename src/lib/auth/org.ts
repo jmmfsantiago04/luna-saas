@@ -6,10 +6,10 @@ import { db } from "@/db";
 import { organizations, organizationMembers } from "@/db/schema";
 import { requireUser } from "./session";
 
-export type Role = "owner" | "admin" | "member";
-const rank: Record<Role, number> = { member: 1, admin: 2, owner: 3 };
+export type Role = "owner" | "admin";
+const rank: Record<Role, number> = { admin: 1, owner: 2 };
 
-export const requireOrg = cache(async (slug: string, minRole: Role = "member") => {
+export const requireOrg = cache(async (slug: string, minRole: Role = "admin") => {
   const user = await requireUser();
 
   const [row] = await db

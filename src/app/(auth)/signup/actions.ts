@@ -5,6 +5,7 @@ import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { signIn } from "@/auth";
+import { safeCallback } from "@/lib/safe-redirect";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { hashPassword, passwordSchema } from "@/lib/password";
@@ -105,5 +106,5 @@ export async function signupAction(
   }
 
   // redirect() throws NEXT_REDIRECT — let it propagate to the client.
-  redirect("/onboarding");
+  redirect(safeCallback(formData.get("callbackUrl")) ?? "/onboarding");
 }

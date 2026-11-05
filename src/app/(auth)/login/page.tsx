@@ -13,6 +13,8 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { GoogleButton } from "../google-button";
+import { CallbackInput } from "../callback-input";
 import { loginAction, type LoginState } from "./actions";
 
 const initialState: LoginState = {};
@@ -29,6 +31,7 @@ export default function LoginPage() {
         </CardHeader>
         <CardContent>
           <form action={formAction} className="flex flex-col gap-4">
+            <CallbackInput />
             <div className="flex flex-col gap-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -61,6 +64,7 @@ export default function LoginPage() {
               {pending ? "Entrando..." : "Entrar"}
             </Button>
           </form>
+          <GoogleButton />
         </CardContent>
         <CardFooter>
           <p className="text-sm text-muted-foreground">

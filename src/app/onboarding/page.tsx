@@ -8,9 +8,10 @@ import { CreateOrgForm } from "./create-org-form";
 
 export const instant = false;
 
-export default async function OnboardingPage() {
+export default async function OnboardingPage({ searchParams }: { searchParams: Promise<{ new?: string }> }) {
   await connection();
   const user = await requireUser();
+  const { new: isNew } = await searchParams;
 
   const [existing] = await db
     .select({ slug: organizations.slug })
@@ -18,7 +19,7 @@ export default async function OnboardingPage() {
     .innerJoin(organizations, eq(organizations.id, organizationMembers.organizationId))
     .where(eq(organizationMembers.userId, user.id))
     .limit(1);
-  if (existing) redirect(`/app/${existing.slug}`);
+  if (existing && !isNew) redirect(`/app/${existing.slug}`);
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 p-8">

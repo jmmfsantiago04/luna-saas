@@ -30,7 +30,7 @@ export const verificationTokens = pgTable("verification_tokens", {
   expires: timestamp("expires", { mode: "date" }).notNull(),
 }, (t) => [primaryKey({ columns: [t.identifier, t.token] })]);
 
-export const orgRole = pgEnum("org_role", ["owner", "admin", "member"]);
+export const orgRole = pgEnum("org_role", ["owner", "admin"]);
 
 export const organizations = pgTable("organizations", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -43,7 +43,7 @@ export const organizationMembers = pgTable("organization_members", {
   id: uuid("id").primaryKey().defaultRandom(),
   organizationId: uuid("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  role: orgRole("role").notNull().default("member"),
+  role: orgRole("role").notNull().default("admin"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [uniqueIndex("org_member_unique").on(t.organizationId, t.userId)]);
 
@@ -51,7 +51,7 @@ export const organizationInvites = pgTable("organization_invites", {
   id: uuid("id").primaryKey().defaultRandom(),
   organizationId: uuid("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
   email: text("email").notNull(),
-  role: orgRole("role").notNull().default("member"),
+  role: orgRole("role").notNull().default("admin"),
   token: text("token").notNull().unique(),
   invitedBy: uuid("invited_by").references(() => users.id, { onDelete: "set null" }),
   expiresAt: timestamp("expires_at").notNull(),
