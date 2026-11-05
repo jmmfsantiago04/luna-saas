@@ -1,4 +1,4 @@
-import { pgTable, pgEnum, text, timestamp, uuid, integer, primaryKey, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, pgEnum, text, timestamp, uuid, integer, boolean, primaryKey, uniqueIndex, index } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -58,3 +58,11 @@ export const organizationInvites = pgTable("organization_invites", {
   acceptedAt: timestamp("accepted_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+export const loginAttempts = pgTable("login_attempts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  email: text("email").notNull(),
+  ip: text("ip"),
+  success: boolean("success").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [index("login_attempts_email_created_at_idx").on(t.email, t.createdAt)]);

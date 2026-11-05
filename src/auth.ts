@@ -1,0 +1,128 @@
+import { DrizzleAdapter } from "@auth/drizzle-adapter";
+import { and, count, eq, sql } from "drizzle-orm";
+import NextAuth from "next-auth";
+import Credentials from "next-auth/providers/credentials";
+import { z } from "zod";
+import { db } from "@/db";
+import { accounts, loginAttempts, users, verificationTokens } from "@/db/schema";
+import {
+  DUMMY_PASSWORD_HASH,
+  passwordSchema,
+  verifyPassword,
+} from "@/lib/password";
+
+function normalizeEmail(email: string) {
+  return email.trim().toLowerCase();
+}
+
+function clientIp(request: Request | undefined) {
+  if (!request) return null;
+  const forwarded = request.headers.get("x-forwarded-for");
+  if (forwarded) return forwarded.split(",")[0]?.trim() || null;
+  return request.headers.get("x-real-ip");
+}
+
+export const { handlers, auth, signIn, signOut } = NextAuth({
+  adapter: DrizzleAdapter(db, {
+    usersTable: users,
+    accountsTable: accounts,
+    verificationTokensTable: verificationTokens,
+  }),
+  session: { strategy: "jwt" },
+  pages: {
+    signIn: "/login",
+  },
+  providers: [
+    Credentials({
+      name: "credentials",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Senha", type: "password" },
+      },
+      authorize: async (credentials, request) => {
+        const parsed = z
+          .object({
+            email: z.email(),
+            password: z.string().min(1),
+          })
+          .safeParse(credentials);
+
+        if (!parsed.success) return null;
+
+        const email = normalizeEmail(parsed.data.email);
+        const password = parsed.data.password;
+        const ip = clientIp(request);
+
+        // Rate limit: 5 falhas nos últimos 15 minutos → bloqueia (erro genérico).
+        const [{ value: failedCount }] = await db
+          .select({ value: count() })
+          .from(loginAttempts)
+          .where(
+            and(
+              eq(loginAttempts.email, email),
+              eq(loginAttempts.success, false),
+              sql`${loginAttempts.createdAt} > now() - interval '15 minutes'`,
+            ),
+          );
+
+        if (Number(failedCount) >= 5) {
+          // Ainda registra a tentativa bloqueada para auditoria.
+          await db.insert(loginAttempts).values({
+            email,
+            ip,
+            success: false,
+          });
+          return null;
+        }
+
+        const passwordCheck = passwordSchema(email).safeParse(password);
+        // Ainda assim comparamos com hash (ou DUMMY) para tempo mais uniforme.
+        const [user] = await db
+          .select()
+          .from(users)
+          .where(eq(users.email, email))
+          .limit(1);
+
+        const hash = user?.passwordHash ?? DUMMY_PASSWORD_HASH;
+        const ok =
+          passwordCheck.success &&
+          !!user?.passwordHash &&
+          (await verifyPassword(password, hash));
+
+        await db.insert(loginAttempts).values({
+          email,
+          ip,
+          success: ok,
+        });
+
+        if (!ok || !user) return null;
+
+        return {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+        };
+      },
+    }),
+  ],
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user?.id) token.sub = user.id;
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user && token.sub) {
+        session.user.id = token.sub;
+      }
+      return session;
+    },
+    authorized: async ({ auth, request }) => {
+      const { pathname } = request.nextUrl;
+      const isProtected =
+        pathname.startsWith("/app") || pathname.startsWith("/onboarding");
+      if (!isProtected) return true;
+      return !!auth;
+    },
+  },
+  trustHost: true,
+});
