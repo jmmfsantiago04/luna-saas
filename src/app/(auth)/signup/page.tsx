@@ -61,9 +61,7 @@ export default function SignupPage() {
                 required
               />
               <p className="text-xs text-muted-foreground">
-                Mínimo 10 caracteres, no máximo 72 bytes, com pelo menos uma letra e
-                um número. Não use a parte do email antes do @. Senhas vazadas
-                conhecidas são rejeitadas.
+                Mínimo de 10 caracteres, com pelo menos uma letra e um número. Não use a parte do email antes do @.
               </p>
               {state.fieldErrors?.password?.[0] ? (
                 <p className="text-sm text-destructive">

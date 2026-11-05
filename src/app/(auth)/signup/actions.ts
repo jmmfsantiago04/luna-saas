@@ -7,7 +7,7 @@ import { z } from "zod";
 import { signIn } from "@/auth";
 import { db } from "@/db";
 import { users } from "@/db/schema";
-import { hashPassword, isPwnedPassword, passwordSchema } from "@/lib/password";
+import { hashPassword, passwordSchema } from "@/lib/password";
 
 export type SignupState = {
   error?: string;
@@ -56,14 +56,6 @@ export async function signupAction(
 
   const { name, password } = parsed.data;
 
-  if (await isPwnedPassword(password)) {
-    return {
-      fieldErrors: {
-        password: ["Essa senha apareceu em vazamentos conhecidos, escolha outra"],
-      },
-      error: "Essa senha apareceu em vazamentos conhecidos, escolha outra",
-    };
-  }
 
   const passwordHash = await hashPassword(password);
 

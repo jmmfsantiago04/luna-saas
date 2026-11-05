@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 
@@ -42,34 +41,3 @@ export function passwordSchema(email?: string) {
   );
 }
 
-/**
- * Consulta a API de ranges do Have I Been Pwned (k-anonymity).
- * Fail-open: em timeout/erro de rede, retorna false (não bloqueia cadastro).
- */
-export async function isPwnedPassword(password: string): Promise<boolean> {
-  const sha1 = createHash("sha1").update(password).digest("hex").toUpperCase();
-  const prefix = sha1.slice(0, 5);
-  const suffix = sha1.slice(5);
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 3000);
-  try {
-    const res = await fetch(`https://api.pwnedpasswords.com/range/${prefix}`, {
-      headers: {
-        "Add-Padding": "true",
-        "User-Agent": "luna-saas-password-check",
-      },
-      signal: controller.signal,
-      cache: "no-store",
-    });
-    if (!res.ok) return false;
-    const body = await res.text();
-    return body.split("\n").some((line) => {
-      const [hashSuffix] = line.trim().split(":");
-      return hashSuffix?.toUpperCase() === suffix;
-    });
-  } catch {
-    return false;
-  } finally {
-    clearTimeout(timer);
-  }
-}
