@@ -6,7 +6,9 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   emailVerified: timestamp("email_verified", { mode: "date" }),
   image: text("image"),
-  passwordHash: text("password_hash"), // null para quem entra só com Google
+  passwordHash: text("password_hash"), // null for Google-only users
+  // Incrementado no reset de senha para invalidar JWTs antigos (Credentials + Google).
+  sessionVersion: integer("session_version").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -66,3 +68,12 @@ export const loginAttempts = pgTable("login_attempts", {
   success: boolean("success").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [index("login_attempts_email_created_at_idx").on(t.email, t.createdAt)]);
+
+export const passwordResetTokens = pgTable("password_reset_tokens", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  tokenHash: text("token_hash").notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  usedAt: timestamp("used_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [index("password_reset_tokens_user_created_idx").on(t.userId, t.createdAt)]);

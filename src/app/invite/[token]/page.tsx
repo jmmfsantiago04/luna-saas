@@ -41,8 +41,8 @@ export default async function InvitePage({ params }: { params: Promise<{ token: 
   if (!session?.user?.id) {
     return (
       <Shell title={`Convite para ${invite.orgName}`} description={`Entre ou crie sua conta com ${invite.email} para aceitar.`}>
-        <Button render={<Link href={`/login?callbackUrl=${back}`} />} className="w-full">Entrar</Button>
-        <Button render={<Link href={`/signup?callbackUrl=${back}`} />} variant="outline" className="w-full">Criar conta</Button>
+        <Button nativeButton={false} render={<Link href={`/login?callbackUrl=${back}`} />} className="w-full">Entrar</Button>
+        <Button nativeButton={false} render={<Link href={`/signup?callbackUrl=${back}`} />} variant="outline" className="w-full">Criar conta</Button>
       </Shell>
     );
   }

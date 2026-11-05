@@ -33,7 +33,11 @@ export function InviteForm({ slug }: { slug: string }) {
       ) : null}
       {state.url ? (
         <div className="flex flex-col gap-2 rounded-lg border p-3 text-sm">
-          <span>Convite para {state.email} (vale 7 dias). Envie este link:</span>
+          <span>
+            {state.emailSent
+              ? `Email enviado para ${state.email}. Se não chegar, envie este link (vale 7 dias):`
+              : `Não foi possível enviar o email para ${state.email}. Envie este link (vale 7 dias):`}
+          </span>
           <div className="flex gap-2">
             <Input readOnly value={state.url} onFocus={(e) => e.currentTarget.select()} />
             <Button type="button" variant="outline" onClick={copy}>

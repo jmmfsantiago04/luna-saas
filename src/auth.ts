@@ -6,6 +6,7 @@ import Google from "next-auth/providers/google";
 import { z } from "zod";
 import { db } from "@/db";
 import { accounts, loginAttempts, users, verificationTokens } from "@/db/schema";
+import { isJwtSessionVersionValid } from "@/lib/auth/session-version";
 import {
   DUMMY_PASSWORD_HASH,
   passwordSchema,
@@ -110,13 +111,38 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   callbacks: {
     async jwt({ token, user }) {
-      if (user?.id) token.sub = user.id;
+      // Login novo (Credentials ou Google): grava session_version atual no JWT.
+      if (user?.id) {
+        token.sub = user.id;
+        const [row] = await db
+          .select({ sv: users.sessionVersion })
+          .from(users)
+          .where(eq(users.id, user.id))
+          .limit(1);
+        if (!row) return {};
+        token.sv = row.sv;
+        return token;
+      }
+
+      // Tokens antigos sem sv, usuário inexistente, ou versão divergente → revoga.
+      if (!token.sub) return {};
+      const [row] = await db
+        .select({ sv: users.sessionVersion })
+        .from(users)
+        .where(eq(users.id, token.sub))
+        .limit(1);
+      if (!isJwtSessionVersionValid(token.sv, row?.sv)) {
+        return {};
+      }
       return token;
     },
     async session({ session, token }) {
-      if (session.user && token.sub) {
-        session.user.id = token.sub;
+      // jwt já rejeitou versões inválidas (retorna token sem sub/sv).
+      if (!session.user || !token.sub || typeof token.sv !== "number") {
+        return { ...session, user: undefined as unknown as typeof session.user };
       }
+      session.user.id = token.sub;
+      session.sessionVersion = token.sv;
       return session;
     },
     authorized: async ({ auth, request }) => {
@@ -124,7 +150,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       const isProtected =
         pathname.startsWith("/app") || pathname.startsWith("/onboarding");
       if (!isProtected) return true;
-      return !!auth;
+      return !!auth?.user?.id;
     },
   },
   trustHost: true,

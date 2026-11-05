@@ -7,8 +7,9 @@ import { db } from "@/db";
 import { organizationInvites, organizationMembers, users } from "@/db/schema";
 import { requireOrg } from "@/lib/auth/org";
 import { generateInviteToken, inviteExpiresAt, inviteUrl } from "@/lib/invites";
+import { inviteEmail, sendEmail } from "@/lib/email";
 
-export type InviteState = { error?: string; url?: string; email?: string };
+export type InviteState = { error?: string; url?: string; email?: string; emailSent?: boolean };
 
 const schema = z.object({ email: z.email("Email inválido") });
 
@@ -62,6 +63,12 @@ export async function createInvite(slug: string, _prev: InviteState, formData: F
     });
   }
 
+  const url = inviteUrl(token);
+  const sent = await sendEmail({
+    to: email,
+    ...inviteEmail({ orgName: org.name, inviterName: user.name ?? user.email ?? "Alguém", url }),
+  });
+
   revalidatePath(`/app/${org.slug}/members`);
-  return { url: inviteUrl(token), email };
+  return { url, email, emailSent: sent.ok };
 }

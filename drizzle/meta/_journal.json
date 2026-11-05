@@ -29,6 +29,20 @@
       "when": 1793895618661,
       "tag": "0003_drop_member_role",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793899921695,
+      "tag": "0004_password_reset_tokens",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793900533769,
+      "tag": "0005_sticky_the_initiative",
+      "breakpoints": true
     }
   ]
 }
