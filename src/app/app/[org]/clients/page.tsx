@@ -88,9 +88,12 @@ export default async function ClientsPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Clientes</h1>
-        <p className="text-sm text-muted-foreground">Clientes da sua organização.</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold">Clientes</h1>
+          <p className="text-sm text-muted-foreground">Clientes da sua organização.</p>
+        </div>
+        <Button nativeButton={false} render={<Link href={`/app/${slug}/clients/new`} />}>Novo cliente</Button>
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -132,6 +135,11 @@ export default async function ClientsPage({
       {emptyMessage ? (
         <div className="rounded-lg border border-dashed p-10 text-center text-sm text-muted-foreground">
           <p>{emptyMessage}</p>
+          {!q && status === "active" && (
+            <Link href={`/app/${slug}/clients/new`} className="mt-2 inline-block underline">
+              Cadastrar o primeiro
+            </Link>
+          )}
           {q && (
             <Link href={buildHref(slug, { q: "", status, page: 1 })} className="mt-2 inline-block underline">
               Limpar busca
