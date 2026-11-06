@@ -18,7 +18,8 @@ export default async function OrgLayout({ children, params }: { children: React.
     <div className="flex min-h-screen flex-col">
       <header className="flex items-center justify-between border-b px-6 py-3">
         <div className="flex items-center gap-2"><OrgSwitcher orgs={orgs} currentSlug={org.slug} /> <span className="text-sm font-normal text-muted-foreground">· {role}</span>
-          <Link href={`/app/${org.slug}/members`} className="ml-4 text-sm text-muted-foreground hover:text-foreground">Membros</Link></div>
+          <Link href={`/app/${org.slug}/clients`} className="ml-4 text-sm text-muted-foreground hover:text-foreground">Clientes</Link>
+          <Link href={`/app/${org.slug}/members`} className="ml-2 text-sm text-muted-foreground hover:text-foreground">Membros</Link></div>
         <form action={async () => { "use server"; await signOut({ redirectTo: "/login" }); }}>
           <span className="mr-3 text-sm text-muted-foreground">{user.email}</span>
           <Button type="submit" variant="outline" size="sm">Sair</Button>
