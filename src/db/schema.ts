@@ -77,3 +77,25 @@ export const passwordResetTokens = pgTable("password_reset_tokens", {
   usedAt: timestamp("used_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [index("password_reset_tokens_user_created_idx").on(t.userId, t.createdAt)]);
+export const clientType = pgEnum("client_type", ["person", "company"]);
+
+/** CRM clients: tenant-scoped contacts, not login users. Email is optional and not unique. */
+export const clients = pgTable("clients", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  type: clientType("type").notNull().default("person"),
+  email: text("email"),
+  phone: text("phone"),
+  contact: text("contact"),
+  source: text("source"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  archivedAt: timestamp("archived_at"),
+}, (t) => [
+  index("clients_org_id_idx").on(t.organizationId),
+  index("clients_org_name_idx").on(t.organizationId, t.name),
+  index("clients_org_email_idx").on(t.organizationId, t.email),
+  index("clients_org_archived_at_idx").on(t.organizationId, t.archivedAt),
+]);

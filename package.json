@@ -11,7 +11,9 @@
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "test:org-isolation": "node --experimental-test-module-mocks --import tsx --test --test-concurrency=1 src/lib/auth/org.isolation.test.ts",
-    "test:unit": "npx tsx --test src/lib/auth/session-version.test.ts"
+    "test:unit": "npx tsx --test src/lib/auth/session-version.test.ts",
+    "test:clients-validation": "npx tsx --test src/lib/clients/validation.test.ts",
+    "test:clients": "node --experimental-test-module-mocks --import tsx --test --test-concurrency=1 src/lib/clients.isolation.test.ts"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.3",

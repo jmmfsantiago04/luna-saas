@@ -43,6 +43,13 @@
       "when": 1793900533769,
       "tag": "0005_sticky_the_initiative",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793909731712,
+      "tag": "0006_lively_slapstick",
+      "breakpoints": true
     }
   ]
 }
