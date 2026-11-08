@@ -1,36 +1,18 @@
 import Link from "next/link";
 import { connection } from "next/server";
-import { listClients } from "@/lib/clients";
+import { listClients, listClientTags } from "@/lib/clients";
+import {
+  buildClientsHref as buildHref,
+  parseClientListParams as parseFilters,
+  type ClientStatus as Status,
+  type SearchParamsRecord as SearchParams,
+} from "@/lib/clients/filters";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ClientsTable } from "./clients-table";
 
 export const instant = false;
-
-type Status = "active" | "archived";
-type SearchParams = Record<string, string | string[] | undefined>;
-
-function first(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] : value;
-}
-
-/** A URL pode trazer qualquer coisa: normaliza para valores seguros. */
-function parseFilters(sp: SearchParams) {
-  const q = (first(sp.q) ?? "").trim().slice(0, 100);
-  const status: Status = first(sp.status) === "archived" ? "archived" : "active";
-  const pageNum = Number(first(sp.page));
-  const page = Number.isInteger(pageNum) && pageNum >= 1 ? pageNum : 1;
-  return { q, status, page };
-}
-
-function buildHref(slug: string, f: { q: string; status: Status; page: number }) {
-  const params = new URLSearchParams();
-  if (f.q) params.set("q", f.q);
-  if (f.status !== "active") params.set("status", f.status);
-  if (f.page > 1) params.set("page", String(f.page));
-  const qs = params.toString();
-  return `/app/${slug}/clients${qs ? `?${qs}` : ""}`;
-}
 
 export default async function ClientsPage({
   params,
@@ -42,7 +24,7 @@ export default async function ClientsPage({
   await connection();
   const { org: slug } = await params;
   const filters = parseFilters(await searchParams);
-  const result = await listClients(slug, filters);
+  const [result, allTags] = await Promise.all([listClients(slug, filters), listClientTags(slug)]);
 
   if (!result.ok) {
     return (
@@ -50,7 +32,7 @@ export default async function ClientsPage({
         <h1 className="text-2xl font-semibold">Clientes</h1>
         <p className="text-sm text-muted-foreground">
           Não foi possível aplicar esses filtros.{" "}
-          <Link href={buildHref(slug, { q: "", status: "active", page: 1 })} className="underline">
+          <Link href={buildHref(slug, {})} className="underline">
             Limpar busca
           </Link>
         </p>
@@ -59,7 +41,9 @@ export default async function ClientsPage({
   }
 
   const { items, total, page, pageCount } = result;
-  const { q, status } = filters;
+  const { q, tag, status } = filters;
+  const hasFilters = Boolean(q || tag);
+  const tagOptions = tag && !allTags.includes(tag) ? [tag, ...allTags] : allTags;
 
   const tabs: { value: Status; label: string }[] = [
     { value: "active", label: "Ativos" },
@@ -68,7 +52,7 @@ export default async function ClientsPage({
 
   let emptyMessage: string | null = null;
   if (items.length === 0) {
-    if (q) emptyMessage = `Nenhum cliente encontrado para “${q}”.`;
+    if (hasFilters) emptyMessage = "Nenhum cliente encontrado com esses filtros.";
     else if (status === "archived") emptyMessage = "Nenhum cliente arquivado.";
     else emptyMessage = "Nenhum cliente cadastrado ainda.";
   }
@@ -90,7 +74,7 @@ export default async function ClientsPage({
             return (
               <Link
                 key={tab.value}
-                href={buildHref(slug, { q, status: tab.value, page: 1 })}
+                href={buildHref(slug, { q, tag, status: tab.value })}
                 aria-current={current ? "page" : undefined}
                 className={
                   current
@@ -104,37 +88,64 @@ export default async function ClientsPage({
           })}
         </nav>
 
-        <form method="get" className="flex gap-2">
+        <form method="get" className="flex flex-wrap items-center gap-2">
           {status !== "active" && <input type="hidden" name="status" value={status} />}
           <Input
             name="q"
             defaultValue={q}
-            placeholder="Buscar por nome ou email"
+            placeholder="Nome, email, telefone, Instagram, documento"
             className="w-full sm:w-64"
             maxLength={100}
           />
+          <select
+            name="tag"
+            defaultValue={tag}
+            aria-label="Filtrar por tag"
+            className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
+          >
+            <option value="">Todas as tags</option>
+            {tagOptions.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
           <Button type="submit" variant="outline">
             Buscar
           </Button>
+          {hasFilters && (
+            <Link href={buildHref(slug, { status })} className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground">
+              Limpar
+            </Link>
+          )}
         </form>
       </div>
+
+      {tag && (
+        <p className="text-sm text-muted-foreground">
+          Filtrando pela tag <Badge variant="secondary">{tag}</Badge>{" "}
+          <Link href={buildHref(slug, { q, status })} className="underline underline-offset-4">
+            remover
+          </Link>
+        </p>
+      )}
 
       {emptyMessage ? (
         <div className="rounded-lg border border-dashed p-10 text-center text-sm text-muted-foreground">
           <p>{emptyMessage}</p>
-          {!q && status === "active" && (
+          {!hasFilters && status === "active" && (
             <Link href={`/app/${slug}/clients/new`} className="mt-2 inline-block underline">
               Cadastrar o primeiro
             </Link>
           )}
-          {q && (
-            <Link href={buildHref(slug, { q: "", status, page: 1 })} className="mt-2 inline-block underline">
-              Limpar busca
+          {hasFilters && (
+            <Link href={buildHref(slug, { status })} className="mt-2 inline-block underline">
+              Limpar filtros
             </Link>
           )}
         </div>
       ) : (
-        <ClientsTable slug={slug} items={items} />
+        <ClientsTable slug={slug} items={items} filters={{ q, tag, status }} />
       )}
 
       {total > 0 && (
@@ -144,14 +155,14 @@ export default async function ClientsPage({
           </span>
           <div className="flex gap-2">
             {page > 1 ? (
-              <Link href={buildHref(slug, { q, status, page: page - 1 })} className="rounded-md border px-3 py-1.5 hover:bg-muted">
+              <Link href={buildHref(slug, { q, tag, status, page: page - 1 })} className="rounded-md border px-3 py-1.5 hover:bg-muted">
                 Anterior
               </Link>
             ) : (
               <span className="rounded-md border px-3 py-1.5 opacity-50" aria-disabled="true">Anterior</span>
             )}
             {page < pageCount ? (
-              <Link href={buildHref(slug, { q, status, page: page + 1 })} className="rounded-md border px-3 py-1.5 hover:bg-muted">
+              <Link href={buildHref(slug, { q, tag, status, page: page + 1 })} className="rounded-md border px-3 py-1.5 hover:bg-muted">
                 Próxima
               </Link>
             ) : (

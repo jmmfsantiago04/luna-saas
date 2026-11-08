@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, count, desc, eq, ilike, isNotNull, isNull, or, type SQL } from "drizzle-orm";
+import { and, arrayContains, asc, count, desc, eq, ilike, isNotNull, isNull, or, sql, type SQL } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/db";
@@ -19,6 +19,12 @@ const listFiltersSchema = z
       .string()
       .trim()
       .max(200)
+      .optional()
+      .transform((v) => (v && v.length > 0 ? v : undefined)),
+    tag: z
+      .string()
+      .trim()
+      .max(40)
       .optional()
       .transform((v) => (v && v.length > 0 ? v : undefined)),
     /** active (default) = archived_at IS NULL; archived = archived_at IS NOT NULL */
@@ -60,7 +66,13 @@ function escapeIlike(term: string) {
 function searchCondition(q: string | undefined): SQL | undefined {
   if (!q) return undefined;
   const pattern = `%${escapeIlike(q)}%`;
-  return or(ilike(clients.name, pattern), ilike(clients.email, pattern));
+  return or(
+    ilike(clients.name, pattern),
+    ilike(clients.email, pattern),
+    ilike(clients.phone, pattern),
+    ilike(clients.instagram, pattern),
+    ilike(clients.document, pattern),
+  );
 }
 
 export async function listClients(slug: string, filters: ListClientsFiltersInput = {}) {
@@ -79,10 +91,15 @@ export async function listClients(slug: string, filters: ListClientsFiltersInput
     };
   }
 
-  const { page, q, status } = parsed.data;
+  const { page, q, tag, status } = parsed.data;
   const archivedClause =
     status === "archived" ? isNotNull(clients.archivedAt) : isNull(clients.archivedAt);
-  const where = and(eq(clients.organizationId, org.id), archivedClause, searchCondition(q));
+  const where = and(
+    eq(clients.organizationId, org.id),
+    archivedClause,
+    searchCondition(q),
+    tag ? arrayContains(clients.tags, [tag]) : undefined,
+  );
 
   const [{ value: total }] = await db.select({ value: count() }).from(clients).where(where);
   const totalNum = Number(total);
@@ -106,6 +123,19 @@ export async function listClients(slug: string, filters: ListClientsFiltersInput
     pageSize: CLIENTS_PAGE_SIZE,
     pageCount,
   };
+}
+
+/** Tags distintas usadas pelos clientes da org (ativos e arquivados), ordenadas. */
+export async function listClientTags(slug: string): Promise<string[]> {
+  const { org } = await requireOrg(slug);
+  const rows = await db
+    .selectDistinct({ tag: sql<string>`unnest(${clients.tags})` })
+    .from(clients)
+    .where(eq(clients.organizationId, org.id));
+  return rows
+    .map((r) => r.tag)
+    .filter((t): t is string => typeof t === "string" && t.length > 0)
+    .sort((a, b) => a.localeCompare(b, "pt-BR", { sensitivity: "base" }));
 }
 
 export async function getClient(slug: string, clientId: string): Promise<ClientRow> {

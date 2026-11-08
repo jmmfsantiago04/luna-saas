@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { ClientRow } from "@/lib/clients";
+import { buildClientsHref, type ClientListParams } from "@/lib/clients/filters";
 
 const TYPE_LABEL = { person: "Pessoa", company: "Empresa" } as const;
 
@@ -30,7 +31,15 @@ function InfoRow({ label, children }: { label: string; children: React.ReactNode
   );
 }
 
-export function ClientsTable({ slug, items }: { slug: string; items: ClientRow[] }) {
+export function ClientsTable({
+  slug,
+  items,
+  filters,
+}: {
+  slug: string;
+  items: ClientRow[];
+  filters: Pick<ClientListParams, "q" | "tag" | "status">;
+}) {
   const [selected, setSelected] = useState<ClientRow | null>(null);
 
   return (
@@ -44,6 +53,7 @@ export function ClientsTable({ slug, items }: { slug: string; items: ClientRow[]
               <TableHead>Email</TableHead>
               <TableHead>Telefone</TableHead>
               <TableHead>Origem</TableHead>
+              <TableHead>Tags</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -62,6 +72,22 @@ export function ClientsTable({ slug, items }: { slug: string; items: ClientRow[]
                 <TableCell>{dash(client.email)}</TableCell>
                 <TableCell>{dash(client.phone)}</TableCell>
                 <TableCell>{dash(client.source)}</TableCell>
+                <TableCell>
+                  <div className="flex flex-wrap gap-1">
+                    {client.tags.length === 0
+                      ? dash(null)
+                      : client.tags.map((t) => (
+                          <Badge
+                            key={t}
+                            variant={t === filters.tag ? "default" : "secondary"}
+                            render={<Link href={buildClientsHref(slug, { q: filters.q, status: filters.status, tag: t })} />}
+                            title={`Filtrar pela tag ${t}`}
+                          >
+                            {t}
+                          </Badge>
+                        ))}
+                  </div>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>

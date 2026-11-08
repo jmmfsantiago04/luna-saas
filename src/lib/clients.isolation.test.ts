@@ -97,6 +97,7 @@ describe("clients data layer (integration, neon dev)", { concurrency: false }, a
     updateClient,
     archiveClient,
     restoreClient,
+    listClientTags,
     CLIENTS_PAGE_SIZE,
   } = await import("@/lib/clients");
 
@@ -314,5 +315,48 @@ describe("clients data layer (integration, neon dev)", { concurrency: false }, a
 
     // invalid uuid → notFound
     await assert.rejects(async () => getClient(slugA, "not-a-uuid"), isNotFound);
+  });
+
+  it("search covers phone/instagram/document and tag filter + listClientTags stay in-org", async () => {
+    sessionBox.current = asSession({ id: ids.ownerA, email: emailA });
+    const a1 = await createClient(slugA, {
+      name: "Tagged A1", type: "person", phone: "71988887777", instagram: "@luna_tag_a1",
+      document: "123.456.789-00", tags: "vip, noiva",
+    });
+    const a2 = await createClient(slugA, { name: "Tagged A2", type: "person", tags: ["noiva"] });
+    assert.equal(a1.ok && a2.ok, true);
+    if (!a1.ok || !a2.ok) return;
+
+    for (const q of ["988887777", "luna_tag_a1", "456.789"]) {
+      const res = await listClients(slugA, { q });
+      assert.equal(res.ok, true);
+      if (res.ok) assert.deepEqual(res.items.map((c) => c.id), [a1.id], q);
+    }
+    const literal = await listClients(slugA, { q: "%" });
+    assert.equal(literal.ok, true);
+    if (literal.ok) assert.equal(literal.items.length, 0);
+
+    const vip = await listClients(slugA, { tag: "vip" });
+    assert.equal(vip.ok, true);
+    if (vip.ok) assert.deepEqual(vip.items.map((c) => c.id), [a1.id]);
+    const noiva = await listClients(slugA, { tag: "noiva" });
+    if (noiva.ok) assert.deepEqual(new Set(noiva.items.map((c) => c.id)), new Set([a1.id, a2.id]));
+    const combo = await listClients(slugA, { tag: "noiva", q: "A2" });
+    if (combo.ok) assert.deepEqual(combo.items.map((c) => c.id), [a2.id]);
+
+    assert.deepEqual(await listClientTags(slugA), ["noiva", "vip"]);
+
+    sessionBox.current = asSession({ id: ids.ownerB, email: emailB });
+    const b = await createClient(slugB, { name: "Tagged B", type: "person", tags: "segredo-b, vip" });
+    assert.equal(b.ok, true);
+    assert.deepEqual(await listClientTags(slugB), ["segredo-b", "vip"]);
+    const bVip = await listClients(slugB, { tag: "vip" });
+    if (bVip.ok) assert.equal(bVip.items.every((c) => c.organizationId === ids.orgB), true);
+    await assert.rejects(async () => listClientTags(slugA), isNotFound);
+
+    sessionBox.current = asSession({ id: ids.ownerA, email: emailA });
+    assert.equal((await listClientTags(slugA)).includes("segredo-b"), false);
+    const aSeg = await listClients(slugA, { tag: "segredo-b" });
+    if (aSeg.ok) assert.equal(aSeg.items.length, 0);
   });
 });
