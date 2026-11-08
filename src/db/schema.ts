@@ -1,4 +1,5 @@
-import { pgTable, pgEnum, text, timestamp, uuid, integer, boolean, primaryKey, uniqueIndex, index } from "drizzle-orm/pg-core";
+import { pgTable, pgEnum, text, timestamp, uuid, integer, boolean, primaryKey, uniqueIndex, index, date } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -90,6 +91,16 @@ export const clients = pgTable("clients", {
   contact: text("contact"),
   source: text("source"),
   notes: text("notes"),
+  // Ficha completa (opcionais)
+  document: text("document"), // CPF ou CNPJ
+  birthDate: date("birth_date", { mode: "string" }), // YYYY-MM-DD
+  addressStreet: text("address_street"),
+  addressCity: text("address_city"),
+  addressState: text("address_state"),
+  addressZip: text("address_zip"),
+  instagram: text("instagram"),
+  website: text("website"),
+  tags: text("tags").array().notNull().default(sql`'{}'::text[]`),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
   archivedAt: timestamp("archived_at"),

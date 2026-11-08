@@ -50,6 +50,13 @@
       "when": 1793909731712,
       "tag": "0006_lively_slapstick",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1794063541695,
+      "tag": "0007_goofy_shiver_man",
+      "breakpoints": true
     }
   ]
 }

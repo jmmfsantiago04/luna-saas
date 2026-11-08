@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { connection } from "next/server";
 import { requireOrg } from "@/lib/auth/org";
-import { ClientForm } from "./client-form";
+import { createClientAction } from "../actions";
+import { ClientForm } from "../client-form";
 
 export const instant = false;
 
@@ -18,7 +19,7 @@ export default async function NewClientPage({ params }: { params: Promise<{ org:
         </Link>
         <h1 className="mt-2 text-2xl font-semibold">Novo cliente</h1>
       </div>
-      <ClientForm slug={org.slug} />
+      <ClientForm action={createClientAction.bind(null, org.slug)} cancelHref={`/app/${org.slug}/clients`} />
     </div>
   );
 }

@@ -3,14 +3,7 @@ import { connection } from "next/server";
 import { listClients } from "@/lib/clients";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { ClientsTable } from "./clients-table";
 
 export const instant = false;
 
@@ -37,12 +30,6 @@ function buildHref(slug: string, f: { q: string; status: Status; page: number })
   if (f.page > 1) params.set("page", String(f.page));
   const qs = params.toString();
   return `/app/${slug}/clients${qs ? `?${qs}` : ""}`;
-}
-
-const TYPE_LABEL = { person: "Pessoa", company: "Empresa" } as const;
-
-function dash(value: string | null) {
-  return value && value.trim() ? value : "—";
 }
 
 export default async function ClientsPage({
@@ -93,7 +80,7 @@ export default async function ClientsPage({
           <h1 className="text-2xl font-semibold">Clientes</h1>
           <p className="text-sm text-muted-foreground">Clientes da sua organização.</p>
         </div>
-        <Button nativeButton={false} render={<Link href={`/app/${slug}/clients/new`} />}>Novo cliente</Button>
+        <Button render={<Link href={`/app/${slug}/clients/new`} />}>Novo cliente</Button>
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -147,30 +134,7 @@ export default async function ClientsPage({
           )}
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Telefone</TableHead>
-                <TableHead>Origem</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {items.map((client) => (
-                <TableRow key={client.id}>
-                  <TableCell className="font-medium">{client.name}</TableCell>
-                  <TableCell>{TYPE_LABEL[client.type]}</TableCell>
-                  <TableCell>{dash(client.email)}</TableCell>
-                  <TableCell>{dash(client.phone)}</TableCell>
-                  <TableCell>{dash(client.source)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+        <ClientsTable slug={slug} items={items} />
       )}
 
       {total > 0 && (

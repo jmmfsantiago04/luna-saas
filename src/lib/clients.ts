@@ -138,14 +138,8 @@ export async function createClient(slug: string, data: unknown): Promise<ClientM
   const [row] = await db
     .insert(clients)
     .values({
+      ...fields,
       organizationId: org.id,
-      name: fields.name,
-      type: fields.type,
-      email: fields.email,
-      phone: fields.phone,
-      contact: fields.contact,
-      source: fields.source,
-      notes: fields.notes,
       createdAt: now,
       updatedAt: now,
       archivedAt: null,
@@ -177,15 +171,9 @@ export async function updateClient(
   const updated = await db
     .update(clients)
     .set({
-      name: fields.name,
-      type: fields.type,
-      email: fields.email,
-      phone: fields.phone,
-      contact: fields.contact,
-      source: fields.source,
-      notes: fields.notes,
+      ...fields,
       updatedAt: now,
-      // organizationId intentionally omitted — never move tenants
+      // organizationId fica de fora: o schema strict não aceita e nunca movemos tenants
     })
     .where(and(eq(clients.id, id), eq(clients.organizationId, org.id)))
     .returning({ id: clients.id });
